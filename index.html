@@ -1,0 +1,1578 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Alcor Wealth — Sales & Lead Console</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+<style>
+  html, body { margin: 0; padding: 0; background: #F7F5F0; }
+  #root { min-height: 100vh; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel" data-presets="react">
+const { useState, useMemo } = React;
+
+
+const INDUSTRIES = [
+  { key: "Hotel Tech", glyph: "diamond" },
+  { key: "Clinical Trials", glyph: "cross" },
+  { key: "Drug Discovery", glyph: "hex" },
+  { key: "Packaging & Labelling", glyph: "square" },
+];
+
+const STAGES = [
+  "New Lead",
+  "Contacted",
+  "Pitched",
+  "Follow-up Scheduled",
+  "Interested",
+  "Negotiation",
+  "Confirmed",
+  "Not Interested",
+];
+
+const LOST_REASONS = [
+  "Budget constraints",
+  "Not relevant",
+  "Timing issue",
+  "Already committed",
+  "No response",
+  "Other",
+];
+
+const OPP_TYPES = ["Speaker", "Sponsor", "Exhibitor", "Delegate"];
+
+const ADMIN_PASSWORD = "alcor2026";
+
+const seedStaffAccounts = [
+  { username: "bilal.khan", password: "bilal123", fullName: "Bilal Khan", title: "Sales Executive" },
+  { username: "ayesha.raza", password: "ayesha123", fullName: "Ayesha Raza", title: "Sales Executive" },
+];
+
+
+const todayISO = () => new Date().toISOString().slice(0, 10);
+const addDays = (n) => {
+  const d = new Date();
+  d.setDate(d.getDate() + n);
+  return d.toISOString().slice(0, 10);
+};
+
+const seedLeads = [
+  {
+    id: "L-1001",
+    company: "Meridian Hospitality Group",
+    industry: "Hotel Tech",
+    website: "meridianhg.com",
+    description: "Property management software for boutique hotel chains.",
+    contacts: [
+      { name: "Sara Whitfield", title: "VP Procurement", email: "s.whitfield@meridianhg.com", phone: "+1 312 555 0142", linkedin: "" },
+      { name: "Dev Anand", title: "Head of Partnerships", email: "d.anand@meridianhg.com", phone: "+1 312 555 0198", linkedin: "" },
+    ],
+    stage: "Negotiation",
+    pitched: true,
+    lastContact: addDays(-3),
+    nextFollowUp: addDays(2),
+    dealValue: 18000,
+    executive: "Bilal Khan",
+    event: "AHTF Boston 2026",
+    opportunity: "Sponsor",
+    lostReason: "",
+    lostNote: "",
+    sentiment: "Interested",
+    lastResponse: "Asked for a revised sponsorship tier breakdown by Friday.",
+    timeline: [
+      { type: "Email", date: addDays(-12), note: "Sent intro deck for AHTF Boston sponsorship tiers." },
+      { type: "Call", date: addDays(-8), note: "20 min call, walked through Gold vs Platinum packages." },
+      { type: "Meeting", date: addDays(-3), note: "Video call with both decision makers, positive tone." },
+    ],
+  },
+  {
+    id: "L-1002",
+    company: "Veritas Clinical Partners",
+    industry: "Clinical Trials",
+    website: "veritascp.com",
+    description: "CRO running multi-site Phase II/III oncology trials.",
+    contacts: [
+      { name: "Helena Brandt", title: "Director, Business Development", email: "h.brandt@veritascp.com", phone: "+49 30 555 0177", linkedin: "" },
+    ],
+    stage: "Pitched",
+    pitched: true,
+    lastContact: addDays(-1),
+    nextFollowUp: addDays(4),
+    dealValue: 9500,
+    executive: "Ayesha Raza",
+    event: "Clinical Trials Forum Munich 2026",
+    opportunity: "Speaker",
+    lostReason: "",
+    lostNote: "",
+    sentiment: "Neutral",
+    lastResponse: "Will check with their medical affairs lead before confirming a speaking slot.",
+    timeline: [
+      { type: "Email", date: addDays(-5), note: "Reached out re: speaker slot on adaptive trial design." },
+      { type: "Note", date: addDays(-1), note: "Forwarded internally, awaiting sign-off." },
+    ],
+  },
+  {
+    id: "L-1003",
+    company: "Solvex Discovery Labs",
+    industry: "Drug Discovery",
+    website: "solvexlabs.com",
+    description: "AI-driven small molecule discovery platform.",
+    contacts: [
+      { name: "Tomas Reyes", title: "Co-founder", email: "tomas@solvexlabs.com", phone: "+1 650 555 0123", linkedin: "" },
+      { name: "Priya Nair", title: "Head of Marketing", email: "priya@solvexlabs.com", phone: "+1 650 555 0188", linkedin: "" },
+    ],
+    stage: "Confirmed",
+    pitched: true,
+    lastContact: addDays(-15),
+    nextFollowUp: "",
+    dealValue: 22000,
+    executive: "Bilal Khan",
+    event: "Drug Discovery Summit Basel 2026",
+    opportunity: "Exhibitor",
+    lostReason: "",
+    lostNote: "",
+    sentiment: "Interested",
+    lastResponse: "Signed off on exhibitor booth, invoice requested.",
+    timeline: [
+      { type: "Call", date: addDays(-20), note: "First outreach, strong interest in exhibitor space." },
+      { type: "Meeting", date: addDays(-15), note: "Confirmed booth size and add-ons." },
+    ],
+  },
+  {
+    id: "L-1004",
+    company: "Castellan Packaging Co.",
+    industry: "Packaging & Labelling",
+    website: "castellanpack.com",
+    description: "Sustainable packaging for pharma and FMCG brands.",
+    contacts: [
+      { name: "Imran Sheikh", title: "Regional Sales Director", email: "i.sheikh@castellanpack.com", phone: "+44 161 555 0144", linkedin: "" },
+    ],
+    stage: "New Lead",
+    pitched: false,
+    lastContact: "",
+    nextFollowUp: addDays(1),
+    dealValue: 0,
+    executive: "Ayesha Raza",
+    event: "Packaging & Labelling Expo Dubai 2026",
+    opportunity: "Delegate",
+    lostReason: "",
+    lostNote: "",
+    sentiment: "",
+    lastResponse: "",
+    timeline: [],
+  },
+  {
+    id: "L-1005",
+    company: "Northbridge Hotel Systems",
+    industry: "Hotel Tech",
+    website: "northbridgehs.com",
+    description: "Channel manager and revenue management SaaS for hotel groups.",
+    contacts: [
+      { name: "Greta Lindqvist", title: "CMO", email: "g.lindqvist@northbridgehs.com", phone: "+46 8 555 0166", linkedin: "" },
+    ],
+    stage: "Not Interested",
+    pitched: true,
+    lastContact: addDays(-22),
+    nextFollowUp: "",
+    dealValue: 0,
+    executive: "Bilal Khan",
+    event: "AHTF Boston 2026",
+    opportunity: "Sponsor",
+    lostReason: "Budget constraints",
+    lostNote: "Marketing budget already allocated for the year.",
+    sentiment: "Negative",
+    lastResponse: "Politely declined, budget cycle closed.",
+    timeline: [
+      { type: "Email", date: addDays(-25), note: "Sponsorship pitch sent." },
+      { type: "Call", date: addDays(-22), note: "Declined, cited budget freeze." },
+    ],
+  },
+];
+
+const glyphPath = (glyph) => {
+  switch (glyph) {
+    case "diamond":
+      return <path d="M10 2 L18 10 L10 18 L2 10 Z" />;
+    case "cross":
+      return <path d="M8 2H12V8H18V12H12V18H8V12H2V8H8Z" />;
+    case "hex":
+      return <path d="M10 1 L17.5 5.5 V14.5 L10 19 L2.5 14.5 V5.5 Z" />;
+    default:
+      return <rect x="3" y="3" width="14" height="14" />;
+  }
+};
+
+const IndustryGlyph = ({ industry, size = 20 }) => {
+  const def = INDUSTRIES.find((i) => i.key === industry);
+  if (!def) return null;
+  return (
+    <svg width={size} height={size} viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.4">
+      {glyphPath(def.glyph)}
+    </svg>
+  );
+};
+
+const stageColor = (stage) => {
+  if (stage === "Confirmed") return { bg: "#EAF3DE", text: "#27500A", border: "#97C459" };
+  if (stage === "Not Interested") return { bg: "#FAECE7", text: "#4A1B0C", border: "#D85A30" };
+  if (stage === "Negotiation" || stage === "Interested") return { bg: "#FAEEDA", text: "#412402", border: "#BA7517" };
+  return { bg: "#F1EFE8", text: "#2C2C2A", border: "#888780" };
+};
+
+const sentimentColor = (s) => {
+  if (s === "Interested") return "#27500A";
+  if (s === "Negative") return "#4A1B0C";
+  if (s === "Neutral") return "#5B6573";
+  return "#9A958A";
+};
+
+const fmtMoney = (n) =>
+  n ? `$${n.toLocaleString("en-US")}` : "—";
+
+const fmtDate = (d) => {
+  if (!d) return "—";
+  const dt = new Date(d + "T00:00:00");
+  return dt.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+};
+
+const isOverdue = (d) => {
+  if (!d) return false;
+  return new Date(d + "T00:00:00") < new Date(todayISO() + "T00:00:00");
+};
+
+function AlcorCRM() {
+  const [role, setRole] = useState(null);
+  const [currentStaff, setCurrentStaff] = useState(null);
+  const [staffAccounts, setStaffAccounts] = useState(seedStaffAccounts);
+  const [showManageStaff, setShowManageStaff] = useState(false);
+  const [leads, setLeads] = useState(seedLeads);
+  const [view, setView] = useState("pipeline");
+  const [selectedId, setSelectedId] = useState(null);
+  const [search, setSearch] = useState("");
+  const [industryFilter, setIndustryFilter] = useState("All");
+  const [execFilter, setExecFilter] = useState("All");
+  const [showNewLead, setShowNewLead] = useState(false);
+  const [dragStageId, setDragStageId] = useState(null);
+  const [noteDraft, setNoteDraft] = useState("");
+  const isAdmin = role === "admin";
+
+
+  const executives = useMemo(
+    () => Array.from(new Set(leads.map((l) => l.executive))).sort(),
+    [leads]
+  );
+
+  const filteredLeads = useMemo(() => {
+    return leads.filter((l) => {
+      if (industryFilter !== "All" && l.industry !== industryFilter) return false;
+      if (execFilter !== "All" && l.executive !== execFilter) return false;
+      if (search.trim()) {
+        const q = search.toLowerCase();
+        const hay = (l.company + " " + l.contacts.map((c) => c.name).join(" ")).toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    });
+  }, [leads, industryFilter, execFilter, search]);
+
+  const grouped = useMemo(() => {
+    const g = {};
+    STAGES.forEach((s) => (g[s] = []));
+    filteredLeads.forEach((l) => g[l.stage].push(l));
+    return g;
+  }, [filteredLeads]);
+
+  const metrics = useMemo(() => {
+    const total = leads.length;
+    const confirmed = leads.filter((l) => l.stage === "Confirmed");
+    const lost = leads.filter((l) => l.stage === "Not Interested");
+    const active = total - confirmed.length - lost.length;
+    const pipelineValue = leads
+      .filter((l) => l.stage !== "Not Interested")
+      .reduce((sum, l) => sum + (l.dealValue || 0), 0);
+    const conversion = total ? Math.round((confirmed.length / total) * 100) : 0;
+    const dueToday = leads.filter((l) => l.nextFollowUp === todayISO()).length;
+    const overdue = leads.filter((l) => isOverdue(l.nextFollowUp)).length;
+    return { total, active, confirmed: confirmed.length, lost: lost.length, pipelineValue, conversion, dueToday, overdue };
+  }, [leads]);
+
+  const selected = leads.find((l) => l.id === selectedId) || null;
+
+  function updateLead(id, patch) {
+    setLeads((prev) => prev.map((l) => (l.id === id ? { ...l, ...patch } : l)));
+  }
+
+  function deleteLead(id) {
+    if (!isAdmin) return;
+    setLeads((prev) => prev.filter((l) => l.id !== id));
+    if (selectedId === id) setSelectedId(null);
+  }
+
+  function moveStage(id, stage) {
+    setLeads((prev) =>
+      prev.map((l) => {
+        if (l.id !== id) return l;
+        const patch = { stage, lastContact: l.lastContact || todayISO() };
+        if (stage === "Pitched") patch.pitched = true;
+        if (stage !== "Not Interested") {
+          patch.lostReason = "";
+          patch.lostNote = "";
+        }
+        return { ...l, ...patch };
+      })
+    );
+  }
+
+  function addTimelineEntry(id, type, note) {
+    if (!note.trim()) return;
+    setLeads((prev) =>
+      prev.map((l) =>
+        l.id === id
+          ? {
+              ...l,
+              lastContact: todayISO(),
+              timeline: [...l.timeline, { type, date: todayISO(), note }],
+            }
+          : l
+      )
+    );
+  }
+
+  function createLead(data) {
+    const id = "L-" + (1000 + leads.length + 1);
+    setLeads((prev) => [
+      ...prev,
+      {
+        id,
+        company: data.company,
+        industry: data.industry,
+        website: data.website,
+        description: data.description,
+        contacts: [
+          { name: data.contactName, title: data.contactTitle, email: data.contactEmail, phone: data.contactPhone, linkedin: "" },
+        ],
+        stage: "New Lead",
+        pitched: false,
+        lastContact: "",
+        nextFollowUp: data.nextFollowUp || "",
+        dealValue: 0,
+        executive: data.executive,
+        event: data.event,
+        opportunity: data.opportunity,
+        lostReason: "",
+        lostNote: "",
+        sentiment: "",
+        lastResponse: "",
+        timeline: [],
+      },
+    ]);
+    setShowNewLead(false);
+  }
+
+  function handleAdminLogin() {
+    setRole("admin");
+    setCurrentStaff(null);
+  }
+
+  function handleStaffLogin(account) {
+    setRole("user");
+    setCurrentStaff(account);
+  }
+
+  function handleLogout() {
+    setRole(null);
+    setCurrentStaff(null);
+  }
+
+  function createStaffAccount(data) {
+    setStaffAccounts((prev) => [...prev, data]);
+  }
+
+  function deleteStaffAccount(username) {
+    setStaffAccounts((prev) => prev.filter((s) => s.username !== username));
+  }
+
+  if (!role) {
+    return (
+      <LoginScreen
+        onAdminLogin={handleAdminLogin}
+        onStaffLogin={handleStaffLogin}
+        staffAccounts={staffAccounts}
+      />
+    );
+  }
+
+  return (
+
+    <div style={styles.app}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap');
+        * { box-sizing: border-box; font-family: 'Inter', -apple-system, sans-serif; }
+        .alcor-serif { font-family: 'Fraunces', serif; }
+        ::-webkit-scrollbar { height: 8px; width: 8px; }
+        ::-webkit-scrollbar-thumb { background: #D8D2C4; border-radius: 8px; }
+        button { cursor: pointer; }
+        input, select, textarea { font-family: 'Inter', sans-serif; }
+      `}</style>
+
+      <header style={styles.header}>
+        <div style={styles.headerLeft}>
+          <div style={styles.logoMark} />
+          <div>
+            <div className="alcor-serif" style={styles.brandName}>Alcor Wealth</div>
+            <div style={styles.brandSub}>Sales &amp; Lead Console</div>
+          </div>
+        </div>
+        <nav style={styles.nav}>
+          <button
+            onClick={() => setView("pipeline")}
+            style={view === "pipeline" ? styles.navBtnActive : styles.navBtn}
+          >
+            Pipeline
+          </button>
+          <button
+            onClick={() => setView("dashboard")}
+            style={view === "dashboard" ? styles.navBtnActive : styles.navBtn}
+          >
+            Dashboard
+          </button>
+        </nav>
+        <button style={styles.addLeadBtn} onClick={() => setShowNewLead(true)}>
+          + Add lead
+        </button>
+        {isAdmin && (
+          <button style={styles.manageStaffBtn} onClick={() => setShowManageStaff(true)}>
+            Manage staff
+          </button>
+        )}
+        <div style={styles.roleBadgeWrap}>
+          <span style={isAdmin ? styles.roleBadgeAdmin : styles.roleBadgeUser}>
+            {isAdmin ? "Admin" : currentStaff ? currentStaff.fullName : "Staff"}
+          </span>
+          <button style={styles.logoutBtn} onClick={handleLogout}>
+            Log out
+          </button>
+        </div>
+      </header>
+
+      {view === "dashboard" ? (
+        <Dashboard metrics={metrics} leads={leads} />
+      ) : (
+        <>
+          <div style={styles.filterBar}>
+            <input
+              placeholder="Search company or contact"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              style={styles.searchInput}
+            />
+            <select value={industryFilter} onChange={(e) => setIndustryFilter(e.target.value)} style={styles.select}>
+              <option value="All">All industries</option>
+              {INDUSTRIES.map((i) => (
+                <option key={i.key} value={i.key}>{i.key}</option>
+              ))}
+            </select>
+            <select value={execFilter} onChange={(e) => setExecFilter(e.target.value)} style={styles.select}>
+              <option value="All">All executives</option>
+              {executives.map((e) => (
+                <option key={e} value={e}>{e}</option>
+              ))}
+            </select>
+            <div style={styles.miniStats}>
+              <span style={styles.miniStat}>
+                <strong>{metrics.dueToday}</strong> due today
+              </span>
+              <span style={{ ...styles.miniStat, color: metrics.overdue ? "#993C1D" : "#7A8B6F" }}>
+                <strong>{metrics.overdue}</strong> overdue
+              </span>
+            </div>
+          </div>
+
+          <div style={styles.board}>
+            {STAGES.map((stage) => (
+              <div
+                key={stage}
+                style={{
+                  ...styles.column,
+                  ...(dragStageId === stage ? styles.columnDragOver : {}),
+                }}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  setDragStageId(stage);
+                }}
+                onDragLeave={() => setDragStageId(null)}
+                onDrop={(e) => {
+                  const id = e.dataTransfer.getData("text/plain");
+                  if (id) moveStage(id, stage);
+                  setDragStageId(null);
+                }}
+              >
+                <div style={styles.columnHeader}>
+                  <span style={styles.columnTitle}>{stage}</span>
+                  <span style={styles.columnCount}>{grouped[stage].length}</span>
+                </div>
+                <div style={styles.columnBody}>
+                  {grouped[stage].map((lead) => (
+                    <LeadCard
+                      key={lead.id}
+                      lead={lead}
+                      onOpen={() => setSelectedId(lead.id)}
+                      isAdmin={isAdmin}
+                      onDelete={() => deleteLead(lead.id)}
+                    />
+                  ))}
+                  {grouped[stage].length === 0 && (
+                    <div style={styles.emptyCol}>No leads here yet</div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      {selected && (
+        <LeadDrawer
+          lead={selected}
+          onClose={() => {
+            setSelectedId(null);
+            setNoteDraft("");
+          }}
+          onUpdate={(patch) => updateLead(selected.id, patch)}
+          onMoveStage={(stage) => moveStage(selected.id, stage)}
+          onAddNote={(type, note) => addTimelineEntry(selected.id, type, note)}
+          noteDraft={noteDraft}
+          setNoteDraft={setNoteDraft}
+          isAdmin={isAdmin}
+          onDelete={() => deleteLead(selected.id)}
+        />
+      )}
+
+      {showNewLead && (
+        <NewLeadModal
+          onClose={() => setShowNewLead(false)}
+          onCreate={createLead}
+          executives={executives.length ? executives : ["Bilal Khan", "Ayesha Raza"]}
+        />
+      )}
+
+      {showManageStaff && (
+        <ManageStaffModal
+          onClose={() => setShowManageStaff(false)}
+          staffAccounts={staffAccounts}
+          onCreate={createStaffAccount}
+          onDelete={deleteStaffAccount}
+        />
+      )}
+    </div>
+  );
+}
+
+function LoginScreen({ onAdminLogin, onStaffLogin, staffAccounts }) {
+  const [selectedRole, setSelectedRole] = useState(null);
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+
+  function tryLogin() {
+    if (selectedRole === "admin") {
+      if (password === ADMIN_PASSWORD) {
+        setError("");
+        onAdminLogin();
+      } else {
+        setError("Incorrect password.");
+      }
+      return;
+    }
+    const account = staffAccounts.find((s) => s.username === username.trim());
+    if (account && account.password === password) {
+      setError("");
+      onStaffLogin(account);
+    } else {
+      setError("Incorrect username or password.");
+    }
+  }
+
+  return (
+    <div style={styles.loginScreen}>
+      <div style={styles.loginCard}>
+        <div style={styles.loginLogoMark} />
+        <div className="alcor-serif" style={styles.loginTitle}>Alcor Wealth</div>
+        <div style={styles.loginSub}>Sales &amp; Lead Console</div>
+
+        {!selectedRole ? (
+          <div style={styles.loginChoices}>
+            <button style={styles.loginUserBtn} onClick={() => setSelectedRole("user")}>
+              Staff login
+            </button>
+            <button style={styles.loginAdminLink} onClick={() => setSelectedRole("admin")}>
+              Admin login
+            </button>
+          </div>
+        ) : (
+          <div style={styles.loginAdminBox}>
+            {selectedRole === "user" && (
+              <>
+                <div style={styles.fieldLabel}>Username</div>
+                <input
+                  autoFocus
+                  value={username}
+                  onChange={(e) => {
+                    setUsername(e.target.value);
+                    setError("");
+                  }}
+                  style={styles.input}
+                  placeholder="e.g. bilal.khan"
+                />
+              </>
+            )}
+            <div style={{ ...styles.fieldLabel, marginTop: selectedRole === "user" ? 10 : 0 }}>
+              {selectedRole === "admin" ? "Admin password" : "Password"}
+            </div>
+            <input
+              type="password"
+              autoFocus={selectedRole === "admin"}
+              value={password}
+              onChange={(e) => {
+                setPassword(e.target.value);
+                setError("");
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") tryLogin();
+              }}
+              style={styles.input}
+              placeholder="Enter password"
+            />
+            {error && <div style={styles.loginError}>{error}</div>}
+            <div style={styles.loginAdminActions}>
+              <button
+                style={styles.cancelBtn}
+                onClick={() => {
+                  setSelectedRole(null);
+                  setUsername("");
+                  setPassword("");
+                  setError("");
+                }}
+              >
+                Back
+              </button>
+              <button style={styles.createBtn} onClick={tryLogin}>
+                Log in
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+
+function LeadCard({ lead, onOpen, isAdmin, onDelete }) {
+  const sc = stageColor(lead.stage);
+  const overdue = isOverdue(lead.nextFollowUp);
+  return (
+    <div
+      draggable
+      onDragStart={(e) => e.dataTransfer.setData("text/plain", lead.id)}
+      onClick={onOpen}
+      style={styles.card}
+    >
+      <div style={styles.cardTop}>
+        <span style={{ ...styles.glyphWrap, color: "#C9A24B" }}>
+          <IndustryGlyph industry={lead.industry} size={16} />
+        </span>
+        <span style={{ ...styles.cardCompany, flex: 1 }}>{lead.company}</span>
+        {isAdmin && (
+          <button
+            aria-label="Delete lead"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (window.confirm(`Delete ${lead.company}? This cannot be undone.`)) {
+                onDelete();
+              }
+            }}
+            style={styles.cardDeleteBtn}
+          >
+            ×
+          </button>
+        )}
+      </div>
+      <div style={styles.cardEvent}>{lead.event}</div>
+      <div style={styles.cardMetaRow}>
+        <span style={styles.cardExec}>{lead.executive}</span>
+        {lead.dealValue > 0 && <span style={styles.cardValue}>{fmtMoney(lead.dealValue)}</span>}
+      </div>
+      <div style={styles.cardBottomRow}>
+        <span style={{ ...styles.followPill, color: overdue ? "#993C1D" : "#5B6573", borderColor: overdue ? "#D85A30" : "#D8D2C4" }}>
+          {lead.nextFollowUp ? `Follow up ${fmtDate(lead.nextFollowUp)}` : "No follow-up set"}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function LeadDrawer({ lead, onClose, onUpdate, onMoveStage, onAddNote, noteDraft, setNoteDraft, isAdmin, onDelete }) {
+  const [noteType, setNoteType] = useState("Note");
+
+  return (
+    <div style={styles.overlay} onClick={onClose}>
+      <div style={styles.drawer} onClick={(e) => e.stopPropagation()}>
+        <div style={styles.drawerHeader}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <span style={{ color: "#C9A24B" }}>
+              <IndustryGlyph industry={lead.industry} size={22} />
+            </span>
+            <div>
+              <div className="alcor-serif" style={styles.drawerCompany}>{lead.company}</div>
+              <div style={styles.drawerSub}>{lead.industry} · {lead.website}</div>
+            </div>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            {isAdmin && (
+              <button
+                onClick={() => {
+                  if (window.confirm(`Delete ${lead.company}? This cannot be undone.`)) {
+                    onDelete();
+                    onClose();
+                  }
+                }}
+                style={styles.drawerDeleteBtn}
+              >
+                Delete lead
+              </button>
+            )}
+            <button onClick={onClose} style={styles.closeBtn}>×</button>
+          </div>
+        </div>
+
+        <div style={styles.drawerBody}>
+          <p style={styles.descText}>{lead.description}</p>
+
+          <div style={styles.sectionLabel}>Stage</div>
+          <select
+            value={lead.stage}
+            onChange={(e) => onMoveStage(e.target.value)}
+            style={styles.stageSelect}
+          >
+            {STAGES.map((s) => (
+              <option key={s} value={s}>{s}</option>
+            ))}
+          </select>
+
+          {lead.stage === "Not Interested" && (
+            <div style={styles.lostBlock}>
+              <div style={styles.sectionLabel}>Reason lost</div>
+              <select
+                value={lead.lostReason}
+                onChange={(e) => onUpdate({ lostReason: e.target.value })}
+                style={styles.stageSelect}
+              >
+                <option value="">Select a reason</option>
+                {LOST_REASONS.map((r) => (
+                  <option key={r} value={r}>{r}</option>
+                ))}
+              </select>
+              <textarea
+                placeholder="Add a custom note"
+                value={lead.lostNote}
+                onChange={(e) => onUpdate({ lostNote: e.target.value })}
+                style={styles.textarea}
+              />
+            </div>
+          )}
+
+          <div style={styles.twoCol}>
+            <Field label="Assigned executive">
+              <input
+                value={lead.executive}
+                onChange={(e) => onUpdate({ executive: e.target.value })}
+                style={styles.input}
+              />
+            </Field>
+            <Field label="Deal value (USD)">
+              <input
+                type="number"
+                value={lead.dealValue}
+                onChange={(e) => onUpdate({ dealValue: Number(e.target.value) || 0 })}
+                style={styles.input}
+              />
+            </Field>
+            <Field label="Next follow-up">
+              <input
+                type="date"
+                value={lead.nextFollowUp}
+                onChange={(e) => onUpdate({ nextFollowUp: e.target.value })}
+                style={styles.input}
+              />
+            </Field>
+            <Field label="Opportunity type">
+              <select
+                value={lead.opportunity}
+                onChange={(e) => onUpdate({ opportunity: e.target.value })}
+                style={styles.input}
+              >
+                {OPP_TYPES.map((o) => (
+                  <option key={o} value={o}>{o}</option>
+                ))}
+              </select>
+            </Field>
+          </div>
+
+          <Field label="Event">
+            <input
+              value={lead.event}
+              onChange={(e) => onUpdate({ event: e.target.value })}
+              style={styles.input}
+            />
+          </Field>
+
+          <div style={styles.sectionLabel}>Contacts</div>
+          {lead.contacts.map((c, i) => (
+            <div key={i} style={styles.contactRow}>
+              <div style={styles.contactInitials}>
+                {c.name.split(" ").map((p) => p[0]).join("").slice(0, 2).toUpperCase()}
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={styles.contactName}>{c.name}</div>
+                <div style={styles.contactTitle}>{c.title}</div>
+                <div style={styles.contactDetail}>{c.email} · {c.phone}</div>
+              </div>
+            </div>
+          ))}
+
+          {lead.lastResponse && (
+            <>
+              <div style={styles.sectionLabel}>Last client response</div>
+              <div style={styles.responseBlock}>
+                <span style={{ color: sentimentColor(lead.sentiment), fontWeight: 500, fontSize: 13 }}>
+                  {lead.sentiment || "No sentiment recorded"}
+                </span>
+                <p style={{ margin: "4px 0 0", fontSize: 13.5, color: "#3A382F" }}>{lead.lastResponse}</p>
+              </div>
+            </>
+          )}
+
+          <div style={styles.sectionLabel}>Activity timeline</div>
+          <div style={styles.timeline}>
+            {lead.timeline.length === 0 && <div style={styles.emptyTimeline}>No activity logged yet.</div>}
+            {lead.timeline.slice().reverse().map((t, i) => (
+              <div key={i} style={styles.timelineItem}>
+                <div style={styles.timelineDot} />
+                <div>
+                  <div style={styles.timelineMeta}>
+                    <span style={styles.timelineType}>{t.type}</span>
+                    <span style={styles.timelineDate}>{fmtDate(t.date)}</span>
+                  </div>
+                  <div style={styles.timelineNote}>{t.note}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div style={styles.addNoteRow}>
+            <select value={noteType} onChange={(e) => setNoteType(e.target.value)} style={styles.noteTypeSelect}>
+              <option>Note</option>
+              <option>Call</option>
+              <option>Email</option>
+              <option>Meeting</option>
+            </select>
+            <input
+              placeholder="Log an interaction..."
+              value={noteDraft}
+              onChange={(e) => setNoteDraft(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && noteDraft.trim()) {
+                  onAddNote(noteType, noteDraft);
+                  setNoteDraft("");
+                }
+              }}
+              style={styles.noteInput}
+            />
+            <button
+              style={styles.noteAddBtn}
+              onClick={() => {
+                if (noteDraft.trim()) {
+                  onAddNote(noteType, noteDraft);
+                  setNoteDraft("");
+                }
+              }}
+            >
+              Add
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Field({ label, children }) {
+  return (
+    <div style={{ marginBottom: 14 }}>
+      <div style={styles.fieldLabel}>{label}</div>
+      {children}
+    </div>
+  );
+}
+
+function NewLeadModal({ onClose, onCreate, executives }) {
+  const [form, setForm] = useState({
+    company: "",
+    industry: INDUSTRIES[0].key,
+    website: "",
+    description: "",
+    contactName: "",
+    contactTitle: "",
+    contactEmail: "",
+    contactPhone: "",
+    executive: executives[0],
+    event: "",
+    opportunity: OPP_TYPES[0],
+    nextFollowUp: "",
+  });
+
+  const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
+  const valid = form.company.trim() && form.contactName.trim() && form.contactEmail.trim();
+
+  return (
+    <div style={styles.overlay} onClick={onClose}>
+      <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
+        <div style={styles.modalHeader}>
+          <span className="alcor-serif" style={styles.modalTitle}>Add a new lead</span>
+          <button onClick={onClose} style={styles.closeBtn}>×</button>
+        </div>
+        <div style={styles.modalBody}>
+          <Field label="Company name">
+            <input style={styles.input} value={form.company} onChange={set("company")} placeholder="e.g. Aurum Hospitality" />
+          </Field>
+          <div style={styles.twoCol}>
+            <Field label="Industry">
+              <select style={styles.input} value={form.industry} onChange={set("industry")}>
+                {INDUSTRIES.map((i) => (
+                  <option key={i.key} value={i.key}>{i.key}</option>
+                ))}
+              </select>
+            </Field>
+            <Field label="Website">
+              <input style={styles.input} value={form.website} onChange={set("website")} placeholder="company.com" />
+            </Field>
+          </div>
+          <Field label="Description of services">
+            <textarea style={styles.textarea} value={form.description} onChange={set("description")} placeholder="One line on what they do" />
+          </Field>
+
+          <div style={styles.sectionLabel}>Primary contact</div>
+          <div style={styles.twoCol}>
+            <Field label="Full name">
+              <input style={styles.input} value={form.contactName} onChange={set("contactName")} />
+            </Field>
+            <Field label="Job title">
+              <input style={styles.input} value={form.contactTitle} onChange={set("contactTitle")} />
+            </Field>
+            <Field label="Email">
+              <input style={styles.input} value={form.contactEmail} onChange={set("contactEmail")} />
+            </Field>
+            <Field label="Phone">
+              <input style={styles.input} value={form.contactPhone} onChange={set("contactPhone")} />
+            </Field>
+          </div>
+
+          <div style={styles.sectionLabel}>Event mapping</div>
+          <div style={styles.twoCol}>
+            <Field label="Event name">
+              <input style={styles.input} value={form.event} onChange={set("event")} placeholder="e.g. AHTF Boston 2026" />
+            </Field>
+            <Field label="Opportunity type">
+              <select style={styles.input} value={form.opportunity} onChange={set("opportunity")}>
+                {OPP_TYPES.map((o) => (
+                  <option key={o} value={o}>{o}</option>
+                ))}
+              </select>
+            </Field>
+            <Field label="Assigned executive">
+              <input style={styles.input} value={form.executive} onChange={set("executive")} />
+            </Field>
+            <Field label="First follow-up">
+              <input type="date" style={styles.input} value={form.nextFollowUp} onChange={set("nextFollowUp")} />
+            </Field>
+          </div>
+        </div>
+        <div style={styles.modalFooter}>
+          <button style={styles.cancelBtn} onClick={onClose}>Cancel</button>
+          <button
+            style={{ ...styles.createBtn, opacity: valid ? 1 : 0.5, cursor: valid ? "pointer" : "not-allowed" }}
+            onClick={() => valid && onCreate(form)}
+          >
+            Create lead
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ManageStaffModal({ onClose, staffAccounts, onCreate, onDelete }) {
+  const [form, setForm] = useState({ username: "", password: "", fullName: "", title: "" });
+  const [formError, setFormError] = useState("");
+
+  const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
+
+  function handleCreate() {
+    const username = form.username.trim();
+    if (!username || !form.password.trim() || !form.fullName.trim()) {
+      setFormError("Username, password, and full name are required.");
+      return;
+    }
+    if (staffAccounts.some((s) => s.username === username)) {
+      setFormError("That username is already taken.");
+      return;
+    }
+    onCreate({ username, password: form.password, fullName: form.fullName.trim(), title: form.title.trim() });
+    setForm({ username: "", password: "", fullName: "", title: "" });
+    setFormError("");
+  }
+
+  return (
+    <div style={styles.overlay} onClick={onClose}>
+      <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
+        <div style={styles.modalHeader}>
+          <span className="alcor-serif" style={styles.modalTitle}>Manage staff</span>
+          <button onClick={onClose} style={styles.closeBtn}>×</button>
+        </div>
+        <div style={styles.modalBody}>
+          <div style={styles.sectionLabel}>Existing accounts</div>
+          {staffAccounts.length === 0 && <div style={styles.emptyTimeline}>No staff accounts yet.</div>}
+          {staffAccounts.map((s) => (
+            <div key={s.username} style={styles.staffRow}>
+              <div>
+                <div style={styles.staffName}>{s.fullName}</div>
+                <div style={styles.staffMeta}>{s.title || "Staff"} · @{s.username}</div>
+              </div>
+              <button
+                style={styles.drawerDeleteBtn}
+                onClick={() => {
+                  if (window.confirm(`Remove staff account for ${s.fullName}?`)) onDelete(s.username);
+                }}
+              >
+                Remove
+              </button>
+            </div>
+          ))}
+
+          <div style={styles.sectionLabel}>Add a new staff account</div>
+          <div style={styles.twoCol}>
+            <Field label="Full name">
+              <input style={styles.input} value={form.fullName} onChange={set("fullName")} placeholder="e.g. Imran Sheikh" />
+            </Field>
+            <Field label="Role / title">
+              <input style={styles.input} value={form.title} onChange={set("title")} placeholder="e.g. Sales Executive" />
+            </Field>
+            <Field label="Username">
+              <input style={styles.input} value={form.username} onChange={set("username")} placeholder="e.g. imran.sheikh" />
+            </Field>
+            <Field label="Password">
+              <input type="password" style={styles.input} value={form.password} onChange={set("password")} />
+            </Field>
+          </div>
+          {formError && <div style={styles.loginError}>{formError}</div>}
+        </div>
+        <div style={styles.modalFooter}>
+          <button style={styles.cancelBtn} onClick={onClose}>Done</button>
+          <button style={styles.createBtn} onClick={handleCreate}>Add staff account</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Dashboard({ metrics, leads }) {
+  const byIndustry = useMemo(() => {
+    const m = {};
+    INDUSTRIES.forEach((i) => (m[i.key] = 0));
+    leads.forEach((l) => (m[l.industry] = (m[l.industry] || 0) + 1));
+    return m;
+  }, [leads]);
+
+  const byExec = useMemo(() => {
+    const m = {};
+    leads.forEach((l) => {
+      if (!m[l.executive]) m[l.executive] = { total: 0, confirmed: 0 };
+      m[l.executive].total += 1;
+      if (l.stage === "Confirmed") m[l.executive].confirmed += 1;
+    });
+    return m;
+  }, [leads]);
+
+  const dueSoon = leads
+    .filter((l) => l.nextFollowUp)
+    .sort((a, b) => new Date(a.nextFollowUp) - new Date(b.nextFollowUp))
+    .slice(0, 6);
+
+  const maxIndustry = Math.max(1, ...Object.values(byIndustry));
+
+  return (
+    <div style={styles.dashboard}>
+      <div style={styles.metricGrid}>
+        <Metric label="Total leads" value={metrics.total} />
+        <Metric label="Active in pipeline" value={metrics.active} />
+        <Metric label="Confirmed" value={metrics.confirmed} accent="#27500A" />
+        <Metric label="Pipeline value" value={fmtMoney(metrics.pipelineValue)} />
+        <Metric label="Conversion rate" value={`${metrics.conversion}%`} />
+        <Metric label="Follow-ups due today" value={metrics.dueToday} accent={metrics.dueToday ? "#854F0B" : undefined} />
+      </div>
+
+      <div style={styles.dashRow}>
+        <div style={styles.panel}>
+          <div style={styles.panelTitle}>Leads by industry</div>
+          {INDUSTRIES.map((ind) => (
+            <div key={ind.key} style={styles.barRow}>
+              <span style={{ ...styles.barLabel, color: "#C9A24B" }}>
+                <IndustryGlyph industry={ind.key} size={14} />
+              </span>
+              <span style={styles.barName}>{ind.key}</span>
+              <div style={styles.barTrack}>
+                <div
+                  style={{
+                    ...styles.barFill,
+                    width: `${(byIndustry[ind.key] / maxIndustry) * 100}%`,
+                  }}
+                />
+              </div>
+              <span style={styles.barCount}>{byIndustry[ind.key]}</span>
+            </div>
+          ))}
+        </div>
+
+        <div style={styles.panel}>
+          <div style={styles.panelTitle}>Performance by executive</div>
+          {Object.entries(byExec).map(([name, d]) => (
+            <div key={name} style={styles.execRow}>
+              <span style={styles.execName}>{name}</span>
+              <span style={styles.execStat}>{d.confirmed} / {d.total} confirmed</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div style={styles.panel}>
+        <div style={styles.panelTitle}>Upcoming follow-ups</div>
+        {dueSoon.length === 0 && <div style={styles.emptyTimeline}>Nothing scheduled.</div>}
+        {dueSoon.map((l) => (
+          <div key={l.id} style={styles.followRow}>
+            <span style={{ color: "#C9A24B" }}>
+              <IndustryGlyph industry={l.industry} size={15} />
+            </span>
+            <span style={styles.followCompany}>{l.company}</span>
+            <span style={styles.followExec}>{l.executive}</span>
+            <span style={{ ...styles.followDate, color: isOverdue(l.nextFollowUp) ? "#993C1D" : "#5B6573" }}>
+              {fmtDate(l.nextFollowUp)}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function Metric({ label, value, accent }) {
+  return (
+    <div style={styles.metricCard}>
+      <div style={styles.metricLabel}>{label}</div>
+      <div style={{ ...styles.metricValue, color: accent || "#1A1A18" }}>{value}</div>
+    </div>
+  );
+}
+
+const styles = {
+  app: {
+    background: "#F7F5F0",
+    minHeight: "100vh",
+    color: "#2C2C2A",
+    paddingBottom: 40,
+  },
+  header: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: "18px 28px",
+    borderBottom: "1px solid #E3DECD",
+    background: "#0F1B2D",
+  },
+  headerLeft: { display: "flex", alignItems: "center", gap: 12 },
+  logoMark: {
+    width: 30,
+    height: 30,
+    borderRadius: 6,
+    background: "linear-gradient(135deg, #C9A24B, #9C7A2E)",
+    flexShrink: 0,
+  },
+  brandName: { color: "#F7F5F0", fontSize: 18, fontWeight: 600, lineHeight: 1.1 },
+  brandSub: { color: "#9AA5B5", fontSize: 11.5, letterSpacing: 0.3 },
+  nav: { display: "flex", gap: 6, background: "rgba(255,255,255,0.06)", padding: 4, borderRadius: 8 },
+  navBtn: {
+    border: "none",
+    background: "transparent",
+    color: "#B7C0CE",
+    padding: "7px 16px",
+    borderRadius: 6,
+    fontSize: 13.5,
+    fontWeight: 500,
+  },
+  navBtnActive: {
+    border: "none",
+    background: "#1C2D45",
+    color: "#F7F5F0",
+    padding: "7px 16px",
+    borderRadius: 6,
+    fontSize: 13.5,
+    fontWeight: 500,
+  },
+  addLeadBtn: {
+    background: "#C9A24B",
+    color: "#1A1408",
+    border: "none",
+    padding: "9px 18px",
+    borderRadius: 7,
+    fontSize: 13.5,
+    fontWeight: 600,
+  },
+  manageStaffBtn: {
+    background: "rgba(255,255,255,0.08)",
+    color: "#F7F5F0",
+    border: "1px solid rgba(255,255,255,0.15)",
+    padding: "9px 16px",
+    borderRadius: 7,
+    fontSize: 13.5,
+    fontWeight: 500,
+    marginLeft: 8,
+  },
+  staffRow: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: "10px 0",
+    borderBottom: "1px solid #F0ECE0",
+  },
+  staffName: { fontSize: 13.5, fontWeight: 600, color: "#1A1A18" },
+  staffMeta: { fontSize: 12, color: "#857F6E", marginTop: 2 },
+  roleBadgeWrap: { display: "flex", alignItems: "center", gap: 10, marginLeft: 14 },
+  roleBadgeAdmin: {
+    fontSize: 11.5,
+    fontWeight: 600,
+    color: "#412402",
+    background: "#FAEEDA",
+    padding: "4px 10px",
+    borderRadius: 20,
+  },
+  roleBadgeUser: {
+    fontSize: 11.5,
+    fontWeight: 600,
+    color: "#B7C0CE",
+    background: "rgba(255,255,255,0.08)",
+    padding: "4px 10px",
+    borderRadius: 20,
+  },
+  logoutBtn: {
+    background: "transparent",
+    border: "none",
+    color: "#9AA5B5",
+    fontSize: 12.5,
+    textDecoration: "underline",
+  },
+  loginScreen: {
+    minHeight: "100vh",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    background: "#0F1B2D",
+    padding: 24,
+  },
+  loginCard: {
+    background: "#FAF8F2",
+    borderRadius: 14,
+    padding: "36px 32px",
+    width: 360,
+    maxWidth: "100%",
+    textAlign: "center",
+  },
+  loginLogoMark: {
+    width: 40,
+    height: 40,
+    borderRadius: 8,
+    background: "linear-gradient(135deg, #C9A24B, #9C7A2E)",
+    margin: "0 auto 16px",
+  },
+  loginTitle: { fontSize: 22, fontWeight: 600, color: "#0F1B2D" },
+  loginSub: { fontSize: 13, color: "#857F6E", marginBottom: 28, marginTop: 2 },
+  loginChoices: { display: "flex", flexDirection: "column", gap: 10 },
+  loginUserBtn: {
+    width: "100%",
+    padding: "11px 0",
+    border: "none",
+    borderRadius: 8,
+    background: "#0F1B2D",
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: 600,
+  },
+  loginAdminLink: {
+    background: "none",
+    border: "none",
+    color: "#857F6E",
+    fontSize: 12.5,
+    textDecoration: "underline",
+    padding: "4px 0",
+  },
+  loginAdminBox: { display: "flex", flexDirection: "column", gap: 8, textAlign: "left" },
+  loginError: { color: "#993C1D", fontSize: 12.5 },
+  loginAdminActions: { display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 6 },
+  cardDeleteBtn: {
+    background: "none",
+    border: "none",
+    color: "#A6A18E",
+    fontSize: 18,
+    lineHeight: 1,
+    padding: "0 2px",
+    flexShrink: 0,
+  },
+  drawerDeleteBtn: {
+    background: "none",
+    border: "1px solid #D85A30",
+    color: "#993C1D",
+    fontSize: 12.5,
+    fontWeight: 600,
+    padding: "6px 12px",
+    borderRadius: 7,
+  },
+  filterBar: {
+    display: "flex",
+    alignItems: "center",
+    gap: 10,
+    padding: "16px 28px",
+    flexWrap: "wrap",
+  },
+  searchInput: {
+    flex: "1 1 220px",
+    padding: "9px 12px",
+    border: "1px solid #DDD6C4",
+    borderRadius: 7,
+    fontSize: 13.5,
+    background: "#fff",
+    outline: "none",
+  },
+  select: {
+    padding: "9px 10px",
+    border: "1px solid #DDD6C4",
+    borderRadius: 7,
+    fontSize: 13.5,
+    background: "#fff",
+    color: "#2C2C2A",
+  },
+  miniStats: { display: "flex", gap: 14, marginLeft: "auto", fontSize: 13 },
+  miniStat: { color: "#5B6573" },
+  board: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 14,
+    padding: "0 28px 28px",
+  },
+  column: {
+    background: "#EFEBE0",
+    borderRadius: 10,
+    display: "flex",
+    flexDirection: "column",
+  },
+  columnDragOver: { background: "#E5DFC9", outline: "2px dashed #C9A24B" },
+  columnHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: "12px 14px 8px",
+  },
+  columnTitle: { fontSize: 12.5, fontWeight: 600, color: "#5B6573", letterSpacing: 0.2 },
+  columnCount: {
+    fontSize: 11.5,
+    color: "#8A8576",
+    background: "#fff",
+    borderRadius: 10,
+    padding: "1px 7px",
+  },
+  columnBody: { padding: "0 14px 14px", display: "flex", flexDirection: "row", flexWrap: "wrap", gap: 10 },
+  emptyCol: { fontSize: 12, color: "#A6A18E", padding: "10px 4px" },
+  card: {
+    background: "#fff",
+    borderRadius: 9,
+    padding: "11px 12px",
+    border: "1px solid #E3DECD",
+    cursor: "grab",
+    width: 220,
+    flexShrink: 0,
+  },
+  cardTop: { display: "flex", alignItems: "center", gap: 7, marginBottom: 4 },
+  glyphWrap: { display: "flex", alignItems: "center" },
+  cardCompany: { fontSize: 13.5, fontWeight: 600, color: "#1A1A18" },
+  cardEvent: { fontSize: 11.5, color: "#857F6E", marginBottom: 8 },
+  cardMetaRow: { display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 8 },
+  cardExec: { color: "#5B6573" },
+  cardValue: { color: "#1A1A18", fontWeight: 600 },
+  cardBottomRow: { display: "flex" },
+  followPill: {
+    fontSize: 10.5,
+    padding: "3px 8px",
+    borderRadius: 20,
+    border: "1px solid",
+  },
+  overlay: {
+    position: "fixed",
+    inset: 0,
+    background: "rgba(15,27,45,0.45)",
+    display: "flex",
+    justifyContent: "flex-end",
+    zIndex: 50,
+  },
+  drawer: {
+    width: 420,
+    maxWidth: "92vw",
+    height: "100%",
+    background: "#FAF8F2",
+    overflowY: "auto",
+    boxShadow: "-4px 0 24px rgba(0,0,0,0.15)",
+  },
+  drawerHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    padding: "20px 22px 16px",
+    borderBottom: "1px solid #E3DECD",
+  },
+  drawerCompany: { fontSize: 19, fontWeight: 600, color: "#0F1B2D" },
+  drawerSub: { fontSize: 12, color: "#857F6E", marginTop: 2 },
+  closeBtn: { background: "none", border: "none", fontSize: 22, color: "#857F6E", lineHeight: 1 },
+  drawerBody: { padding: "18px 22px 40px" },
+  descText: { fontSize: 13.5, color: "#4A463A", marginBottom: 18, lineHeight: 1.5 },
+  sectionLabel: {
+    fontSize: 11.5,
+    fontWeight: 600,
+    color: "#9C9684",
+    letterSpacing: 0.4,
+    textTransform: "uppercase",
+    margin: "18px 0 8px",
+  },
+  stageSelect: {
+    width: "100%",
+    padding: "9px 10px",
+    border: "1px solid #DDD6C4",
+    borderRadius: 7,
+    fontSize: 13.5,
+    background: "#fff",
+  },
+  lostBlock: { background: "#FAECE7", borderRadius: 8, padding: 12, marginTop: 10 },
+  textarea: {
+    width: "100%",
+    padding: "9px 10px",
+    border: "1px solid #DDD6C4",
+    borderRadius: 7,
+    fontSize: 13,
+    marginTop: 8,
+    minHeight: 56,
+    resize: "vertical",
+    background: "#fff",
+  },
+  twoCol: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginTop: 4 },
+  fieldLabel: { fontSize: 12, color: "#857F6E", marginBottom: 4 },
+  input: {
+    width: "100%",
+    padding: "8px 10px",
+    border: "1px solid #DDD6C4",
+    borderRadius: 7,
+    fontSize: 13.5,
+    background: "#fff",
+  },
+  contactRow: { display: "flex", gap: 10, alignItems: "flex-start", marginBottom: 10 },
+  contactInitials: {
+    width: 34,
+    height: 34,
+    borderRadius: "50%",
+    background: "#0F1B2D",
+    color: "#C9A24B",
+    fontSize: 12,
+    fontWeight: 600,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+  },
+  contactName: { fontSize: 13.5, fontWeight: 600 },
+  contactTitle: { fontSize: 12, color: "#857F6E" },
+  contactDetail: { fontSize: 11.5, color: "#9C9684", marginTop: 2 },
+  responseBlock: { background: "#fff", border: "1px solid #E3DECD", borderRadius: 8, padding: 10 },
+  timeline: { display: "flex", flexDirection: "column", gap: 12 },
+  emptyTimeline: { fontSize: 12.5, color: "#A6A18E" },
+  timelineItem: { display: "flex", gap: 10 },
+  timelineDot: { width: 7, height: 7, borderRadius: "50%", background: "#C9A24B", marginTop: 5, flexShrink: 0 },
+  timelineMeta: { display: "flex", gap: 8, alignItems: "baseline" },
+  timelineType: { fontSize: 12, fontWeight: 600, color: "#0F1B2D" },
+  timelineDate: { fontSize: 11, color: "#9C9684" },
+  timelineNote: { fontSize: 13, color: "#4A463A", marginTop: 2 },
+  addNoteRow: { display: "flex", gap: 6, marginTop: 16 },
+  noteTypeSelect: { padding: "8px 6px", border: "1px solid #DDD6C4", borderRadius: 7, fontSize: 12.5, background: "#fff" },
+  noteInput: { flex: 1, padding: "8px 10px", border: "1px solid #DDD6C4", borderRadius: 7, fontSize: 13, background: "#fff" },
+  noteAddBtn: { padding: "8px 14px", border: "none", borderRadius: 7, background: "#0F1B2D", color: "#fff", fontSize: 12.5, fontWeight: 600 },
+  modal: {
+    width: 520,
+    maxWidth: "92vw",
+    maxHeight: "86vh",
+    background: "#FAF8F2",
+    borderRadius: 12,
+    margin: "auto",
+    display: "flex",
+    flexDirection: "column",
+    overflow: "hidden",
+  },
+  modalHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: "18px 22px",
+    borderBottom: "1px solid #E3DECD",
+  },
+  modalTitle: { fontSize: 18, fontWeight: 600, color: "#0F1B2D" },
+  modalBody: { padding: "18px 22px", overflowY: "auto", flex: 1 },
+  modalFooter: { display: "flex", justifyContent: "flex-end", gap: 10, padding: "14px 22px", borderTop: "1px solid #E3DECD" },
+  cancelBtn: { padding: "9px 16px", border: "1px solid #DDD6C4", borderRadius: 7, background: "#fff", fontSize: 13.5 },
+  createBtn: { padding: "9px 18px", border: "none", borderRadius: 7, background: "#C9A24B", color: "#1A1408", fontSize: 13.5, fontWeight: 600 },
+  dashboard: { padding: "20px 28px 40px" },
+  metricGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 12, marginBottom: 22 },
+  metricCard: { background: "#fff", border: "1px solid #E3DECD", borderRadius: 10, padding: "14px 16px" },
+  metricLabel: { fontSize: 12, color: "#857F6E", marginBottom: 6 },
+  metricValue: { fontSize: 23, fontWeight: 600 },
+  dashRow: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 },
+  panel: { background: "#fff", border: "1px solid #E3DECD", borderRadius: 10, padding: "16px 18px", marginBottom: 14 },
+  panelTitle: { fontSize: 13.5, fontWeight: 600, color: "#0F1B2D", marginBottom: 14 },
+  barRow: { display: "flex", alignItems: "center", gap: 8, marginBottom: 10 },
+  barLabel: { display: "flex", alignItems: "center" },
+  barName: { fontSize: 12.5, color: "#4A463A", width: 130, flexShrink: 0 },
+  barTrack: { flex: 1, height: 7, background: "#EFEBE0", borderRadius: 5, overflow: "hidden" },
+  barFill: { height: "100%", background: "#C9A24B" },
+  barCount: { fontSize: 12, color: "#5B6573", width: 20, textAlign: "right" },
+  execRow: { display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid #F0ECE0", fontSize: 13 },
+  execName: { fontWeight: 500, color: "#1A1A18" },
+  execStat: { color: "#5B6573" },
+  followRow: { display: "flex", alignItems: "center", gap: 10, padding: "8px 0", borderBottom: "1px solid #F0ECE0", fontSize: 13 },
+  followCompany: { flex: 1, fontWeight: 500 },
+  followExec: { color: "#857F6E", fontSize: 12 },
+  followDate: { fontSize: 12, fontWeight: 600 },
+};
+
+const root = ReactDOM.createRoot(document.getElementById("root"));
+root.render(<AlcorCRM />);
+</script>
+</body>
+</html>
