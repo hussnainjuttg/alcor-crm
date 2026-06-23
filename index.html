@@ -15,7 +15,7 @@
 <body>
 <div id="root"></div>
 <script type="text/babel" data-presets="react">
-const { useState, useMemo } = React;
+const { useState, useMemo, useEffect } = React;
 
 
 const INDUSTRIES = [
@@ -249,7 +249,9 @@ const isOverdue = (d) => {
 function AlcorCRM() {
   const [role, setRole] = useState(null);
   const [currentStaff, setCurrentStaff] = useState(null);
-  const [staffAccounts, setStaffAccounts] = useState(seedStaffAccounts);
+  const [staffAccounts, setStaffAccounts] = useState(() => {
+    try { const s = localStorage.getItem("alcor_staff"); return s ? JSON.parse(s) : seedStaffAccounts; } catch { return seedStaffAccounts; }
+  });
   const [showManageStaff, setShowManageStaff] = useState(false);
   const [leads, setLeads] = useState(seedLeads);
   const [view, setView] = useState("pipeline");
@@ -262,6 +264,9 @@ function AlcorCRM() {
   const [noteDraft, setNoteDraft] = useState("");
   const isAdmin = role === "admin";
 
+  useEffect(() => {
+    try { localStorage.setItem("alcor_staff", JSON.stringify(staffAccounts)); } catch {}
+  }, [staffAccounts]);
 
   const executives = useMemo(
     () => Array.from(new Set(leads.map((l) => l.executive))).sort(),
