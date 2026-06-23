@@ -253,7 +253,9 @@ function AlcorCRM() {
     try { const s = localStorage.getItem("alcor_staff"); return s ? JSON.parse(s) : seedStaffAccounts; } catch { return seedStaffAccounts; }
   });
   const [showManageStaff, setShowManageStaff] = useState(false);
-  const [leads, setLeads] = useState(seedLeads);
+  const [leads, setLeads] = useState(() => {
+    try { const s = localStorage.getItem("alcor_leads"); return s ? JSON.parse(s) : seedLeads; } catch { return seedLeads; }
+  });
   const [view, setView] = useState("pipeline");
   const [selectedId, setSelectedId] = useState(null);
   const [search, setSearch] = useState("");
@@ -267,6 +269,10 @@ function AlcorCRM() {
   useEffect(() => {
     try { localStorage.setItem("alcor_staff", JSON.stringify(staffAccounts)); } catch {}
   }, [staffAccounts]);
+
+  useEffect(() => {
+    try { localStorage.setItem("alcor_leads", JSON.stringify(leads)); } catch {}
+  }, [leads]);
 
   const executives = useMemo(
     () => Array.from(new Set(leads.map((l) => l.executive))).sort(),
